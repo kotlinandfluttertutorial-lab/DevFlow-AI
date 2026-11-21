@@ -44,6 +44,8 @@ class RedactSecretsProcessor:
 def configure_logging(log_level: str | None = None, log_format: str | None = None) -> None:
     """Configure application logging once, with readable DEBUG output in tests."""
     global _configured
+    # Driver DEBUG messages embed raw SQL parameters outside structlog's redaction pipeline.
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     if _configured:
         return
 

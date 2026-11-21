@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     OLLAMA_TIMEOUT_SECONDS: int = Field(default=30, gt=0)
     GITHUB_API_BASE_URL: str = "https://api.github.com"
     LOCAL_OPERATOR_ID: str = Field(default="local_operator", min_length=1)
+    APPROVAL_TTL_SECONDS: int = Field(default=3600, gt=0)
+    APPROVAL_AUTHORIZATION_VALIDITY_SECONDS: int = Field(default=3600, gt=0)
+    RUN_CONCURRENCY: int = Field(default=1, ge=1, le=1)
+    STEP_LEASE_TTL_SECONDS: int = Field(default=60, gt=0)
+    STEP_HEARTBEAT_INTERVAL_SECONDS: int = Field(default=15, gt=0)
+    APPROVED_WORKING_DIRECTORIES: list[str] = Field(default_factory=list)
+    EXECUTOR_ENV_ALLOWLIST: list[str] = Field(default_factory=list)
     GITHUB_CONFIRMATION_TTL_SECONDS: int = Field(default=600, gt=0)
     FIGMA_API_BASE_URL: str = "https://api.figma.com"
     MCP_SERVERS_CONFIG: str = ""

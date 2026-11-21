@@ -6,7 +6,9 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from devflow_api.models.workflow import Workflow, WorkflowRun
+from devflow_api.repositories._workflow_transaction import immediate_transaction
 from devflow_api.repositories.base import BaseRepository
+from devflow_api.schemas.workflow_template import WorkflowTemplate, canonical_hash, canonical_json
 from devflow_core.exceptions import InvalidStatusTransitionError
 
 VALID_FROM = {
@@ -43,6 +45,32 @@ class WorkflowRepository(BaseRepository[Workflow]):
 class WorkflowRunRepository(BaseRepository[WorkflowRun]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(WorkflowRun, session)
+
+    async def create_with_snapshot(
+        self, workflow_id: int, template: WorkflowTemplate, *, commit: bool = True
+    ) -> WorkflowRun:
+        from devflow_api.repositories.workflow_step_run import WorkflowStepRunRepository
+
+        async with immediate_transaction(self.session, commit=commit):
+            payload = template.model_dump(mode="json")
+            run = await self.create(
+                {
+                    "workflow_id": workflow_id,
+                    "template_snapshot_json": canonical_json(payload),
+                    "template_version": template.template_version,
+                    "template_hash": canonical_hash(payload),
+                },
+                commit=False,
+            )
+            await WorkflowStepRunRepository(self.session).create_for_run(
+                run.id, template, commit=False
+            )
+            return run
+
+    async def update(self, id: int, obj_in: dict[str, object]) -> WorkflowRun | None:
+        if obj_in.keys() & {"template_snapshot_json", "template_version", "template_hash"}:
+            raise ValueError("Execution snapshots are immutable")
+        return await super().update(id, obj_in)
 
     async def list_by_workflow(self, workflow_id: int) -> list[WorkflowRun]:
         query = select(WorkflowRun).where(WorkflowRun.workflow_id == workflow_id)

@@ -182,7 +182,7 @@ def test_migration_full_round_trip(migrated: Config, sqlite_path: Path) -> None:
     with closing(sqlite3.connect(sqlite_path)) as db:
         assert {"github_confirmations", "mcp_approvals", trigger} <= _objects(db)
         assert db.execute("SELECT version_num FROM alembic_version").fetchone() == (
-            "007_add_github_confirmations",
+            "008_add_workflow_execution_engine",
         )
         command.downgrade(migrated, "006_add_mcp_approvals")
         assert not {"github_confirmations", trigger} & _objects(db)

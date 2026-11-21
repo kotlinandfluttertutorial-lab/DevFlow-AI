@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from devflow_api.models.base import Base, TimestampMixin, UTCDateTime
@@ -31,6 +31,7 @@ class WorkflowRun(TimestampMixin, Base):
         CheckConstraint(
             "status IN ('pending','running','waiting_approval','completed','failed','cancelled')"
         ),
+        Index("idx_workflow_runs_template_hash", "template_hash"),
         {"sqlite_autoincrement": True},
     )
 
@@ -41,3 +42,6 @@ class WorkflowRun(TimestampMixin, Base):
     completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     result_json: Mapped[str | None] = mapped_column(Text)
     error_message: Mapped[str | None] = mapped_column(Text)
+    template_snapshot_json: Mapped[str | None] = mapped_column(Text)
+    template_version: Mapped[int | None] = mapped_column()
+    template_hash: Mapped[str | None] = mapped_column(Text)

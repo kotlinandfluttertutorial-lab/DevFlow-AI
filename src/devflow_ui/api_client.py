@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class APIClient:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
+        self.last_error_code: str | None = None
 
     async def get_health(self) -> dict[str, str] | None:
         try:
@@ -38,9 +39,11 @@ class APIClient:
         *,
         params: dict[str, str | int] | None = None,
         payload: dict[str, object] | None = None,
+        timeout: float | None = 3.0,
     ) -> object:
+        self.last_error_code = None
         try:
-            async with httpx.AsyncClient(timeout=3.0, trust_env=False) as client:
+            async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
                 response = await client.request(
                     method, f"{self.base_url}/api/v1{path}", params=params, json=payload
                 )
@@ -51,6 +54,15 @@ class APIClient:
                 if data is None:
                     logger.warning("Backend response is null")
                 return data
+        except httpx.HTTPStatusError as exc:
+            try:
+                error = exc.response.json()
+            except ValueError:
+                error = {}
+            if isinstance(error, dict) and isinstance(error.get("code"), str):
+                self.last_error_code = error["code"]
+            logger.warning("Backend request was rejected")
+            return None
         except (httpx.HTTPError, httpx.InvalidURL, ValueError):
             logger.warning("Backend request failed")
             return None
@@ -135,6 +147,19 @@ class APIClient:
 
     async def get_run(self, run_id: int) -> dict[str, object] | None:
         return await self._record("GET", f"/workflow-runs/{run_id}")
+
+    async def start_run(self, run_id: int) -> dict[str, object] | None:
+        data = await self._request("POST", f"/workflow-runs/{run_id}/start", timeout=None)
+        return dict(data) if isinstance(data, dict) else None
+
+    async def cancel_run(self, run_id: int) -> dict[str, object] | None:
+        return await self._record("POST", f"/workflow-runs/{run_id}/cancel")
+
+    async def list_steps(self, run_id: int) -> list[dict[str, object]] | None:
+        return await self._list(f"/workflow-runs/{run_id}/steps")
+
+    async def get_step(self, run_id: int, step_id: int) -> dict[str, object] | None:
+        return await self._record("GET", f"/workflow-runs/{run_id}/steps/{step_id}")
 
     async def list_run_audit(self, run_id: int) -> list[dict[str, object]] | None:
         return await self._list(f"/workflow-runs/{run_id}/audit")

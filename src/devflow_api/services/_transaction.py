@@ -15,6 +15,13 @@ def shared_session(session: AsyncSession, *others: AsyncSession) -> AsyncSession
 @asynccontextmanager
 async def transaction(session: AsyncSession) -> AsyncIterator[None]:
     """Commit the current unit of work, including sessions that already autobegan."""
+    if session.info.get("workflow_immediate"):
+        try:
+            yield
+        except BaseException:
+            session.info["workflow_rollback_only"] = True
+            raise
+        return
     try:
         yield
         await session.commit()

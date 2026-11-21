@@ -27,12 +27,38 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Scan tracked files for verified secrets
+      - name: Scan tracked files for candidate secrets (offline, no verification egress)
         run: |
           scan_root="$(mktemp -d)"
           git archive HEAD | tar -xf - -C "$scan_root"
-          docker run --rm -v "$scan_root:/scan:ro" trufflesecurity/trufflehog:3.90.0 \
-            filesystem /scan --only-verified --fail --json > "$RUNNER_TEMP/trufflehog.json"
+          docker run --rm --network none \
+            -v "$scan_root:/scan:ro" \
+            trufflesecurity/trufflehog:3.90.0 \
+            filesystem /scan \
+              --no-update \
+              --no-verification \
+              --fail \
+              --json 2>/dev/null \
+            | python3 -c "
+import sys, json
+findings = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        obj = json.loads(line)
+    except json.JSONDecodeError:
+        continue
+    det = obj.get('DetectorName', 'unknown')
+    file_ = obj.get('SourceMetadata', {}).get('Data', {}).get('Filesystem', {}).get('file', 'unknown')
+    findings.append({'detector': det, 'file': file_})
+if findings:
+    for f in findings:
+        print(f'FINDING: detector={f[\"detector\"]} file={f[\"file\"]}')
+    sys.exit(1)
+print('No candidate secrets found.')
+"
   sast:
     runs-on: ubuntu-latest
     steps:

@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, StringConstraints
 
 from devflow_api.schemas.approval import ApprovalResponse
+from devflow_api.schemas.executor import ArtifactRef, StructuredError
+from devflow_api.schemas.workflow_template import ToolSelection
 
 type WorkflowStatus = Literal["draft", "active", "paused", "completed", "failed"]
 type WorkflowName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -14,6 +16,7 @@ class WorkflowCreate(BaseModel):
     description: str | None = None
     project_id: int | None = None
     status: WorkflowStatus = "draft"
+    definition_json: str | None = None
 
 
 class WorkflowUpdate(BaseModel):
@@ -21,6 +24,29 @@ class WorkflowUpdate(BaseModel):
     description: str | None = None
     project_id: int | None = None
     status: WorkflowStatus | None = None
+    definition_json: str | None = None
+
+
+class WorkflowRunAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class StepRunResponse(BaseModel):
+    id: int
+    step_key: str
+    step_version: int
+    executor_id: str
+    status: str
+    attempt: int
+    result_status: str | None
+    tool_selection: ToolSelection | None
+    ready_at: datetime | None
+    dispatched_at: datetime | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    output: dict[str, JsonValue] | None = None
+    artifact_refs: list[ArtifactRef] = Field(default_factory=list)
+    error: StructuredError | None = None
 
 
 class WorkflowResponse(BaseModel):
@@ -46,6 +72,7 @@ class WorkflowRunResponse(BaseModel):
     error_message: str | None
     approvals: list[ApprovalResponse] = Field(default_factory=list)
     pending_approvals: list[ApprovalResponse] = Field(default_factory=list)
+    steps: list[StepRunResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

@@ -21,17 +21,33 @@ from devflow_api.adapters.exceptions import (
 from devflow_api.schemas.common import ErrorResponse
 from devflow_core.exceptions import (
     ApprovalAlreadyResolvedError,
+    ApprovalExpiredError,
+    ApprovalNotConsumableError,
     ConfirmationAlreadyUsedError,
     ConfirmationExpiredError,
     ConfirmationMismatchError,
     ConfirmationNotFoundError,
     ConfirmationRequiredError,
+    DatabaseBusyError,
     InvalidStatusTransitionError,
+    InvalidStepTransitionError,
+    InvalidWorkflowTemplateError,
+    OperationNotPermitted,
+    RunNotStartableError,
+    StepDispatchConflict,
 )
 from devflow_core.logging import get_logger
 
 _DOMAIN_ERRORS: dict[type[Exception], tuple[int, str, str]] = {
+    InvalidWorkflowTemplateError: (422, "Invalid workflow template", "INVALID_WORKFLOW_TEMPLATE"),
+    InvalidStepTransitionError: (409, "Invalid step transition", "INVALID_STEP_TRANSITION"),
+    RunNotStartableError: (409, "Run cannot be started", "RUN_NOT_STARTABLE"),
+    StepDispatchConflict: (409, "Workflow dispatch conflict", "STEP_DISPATCH_CONFLICT"),
+    ApprovalNotConsumableError: (409, "Approval cannot be consumed", "APPROVAL_NOT_CONSUMABLE"),
+    DatabaseBusyError: (503, "Workflow database is busy", "DATABASE_BUSY"),
     ApprovalAlreadyResolvedError: (409, "Approval already resolved", "APPROVAL_ALREADY_RESOLVED"),
+    ApprovalExpiredError: (409, "Approval expired", "APPROVAL_EXPIRED"),
+    OperationNotPermitted: (409, "Operation not permitted", "OPERATION_NOT_PERMITTED"),
     InvalidStatusTransitionError: (422, "Invalid status transition", "INVALID_STATUS_TRANSITION"),
     IntegrationExecutionError: (502, "Integration failed", "INTEGRATION_ERROR"),
     MissingCredentialError: (403, "Credential required", "MISSING_CREDENTIAL"),

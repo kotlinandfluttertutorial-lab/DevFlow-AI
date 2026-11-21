@@ -14,9 +14,84 @@
             "title": "Action Description",
             "type": "string"
           },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "authorization_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Expires At"
+          },
+          "consumed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumed At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "enum": [
+                  "specification_approval",
+                  "implementation_authorization",
+                  "pr_creation_approval",
+                  "merge_approval"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation"
+          },
+          "parameters_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters Hash"
           },
           "requested_at": {
             "format": "date-time",
@@ -57,6 +132,17 @@
           "workflow_run_id": {
             "title": "Workflow Run Id",
             "type": "integer"
+          },
+          "workflow_step_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Step Run Id"
           }
         },
         "required": [
@@ -80,6 +166,37 @@
           "expired"
         ],
         "type": "string"
+      },
+      "ArtifactRef": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Digest",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uri"
+          }
+        },
+        "required": [
+          "name",
+          "digest"
+        ],
+        "title": "ArtifactRef",
+        "type": "object"
       },
       "AuditLogEntry": {
         "properties": {
@@ -451,6 +568,7 @@
         "title": "IntegrationSummary",
         "type": "object"
       },
+      "JsonValue": {},
       "LearningItemCreate": {
         "properties": {
           "source_url": {
@@ -883,6 +1001,233 @@
         "title": "ResolveApprovalRequest",
         "type": "object"
       },
+      "StepRunResponse": {
+        "properties": {
+          "artifact_refs": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRef"
+            },
+            "title": "Artifact Refs",
+            "type": "array"
+          },
+          "attempt": {
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "dispatched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatched At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StructuredError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "executor_id": {
+            "title": "Executor Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "ready_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ready At"
+          },
+          "result_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_key": {
+            "title": "Step Key",
+            "type": "string"
+          },
+          "step_version": {
+            "title": "Step Version",
+            "type": "integer"
+          },
+          "tool_selection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToolSelection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "step_key",
+          "step_version",
+          "executor_id",
+          "status",
+          "attempt",
+          "result_status",
+          "tool_selection",
+          "ready_at",
+          "dispatched_at",
+          "started_at",
+          "completed_at"
+        ],
+        "title": "StepRunResponse",
+        "type": "object"
+      },
+      "StructuredError": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "category": {
+            "enum": [
+              "executor",
+              "timeout",
+              "cancelled",
+              "input_resolution",
+              "internal",
+              "skipped"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "default": false,
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "message"
+        ],
+        "title": "StructuredError",
+        "type": "object"
+      },
+      "ToolSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "executor_id": {
+            "minLength": 1,
+            "title": "Executor Id",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool"
+          }
+        },
+        "required": [
+          "executor_id"
+        ],
+        "title": "ToolSelection",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -925,6 +1270,17 @@
       },
       "WorkflowCreate": {
         "properties": {
+          "definition_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definition Json"
+          },
           "description": {
             "anyOf": [
               {
@@ -1024,6 +1380,12 @@
         "title": "WorkflowResponse",
         "type": "object"
       },
+      "WorkflowRunAction": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "WorkflowRunAction",
+        "type": "object"
+      },
       "WorkflowRunResponse": {
         "properties": {
           "approvals": {
@@ -1088,6 +1450,13 @@
             "title": "Status",
             "type": "string"
           },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepRunResponse"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -1123,6 +1492,17 @@
       },
       "WorkflowUpdate": {
         "properties": {
+          "definition_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definition Json"
+          },
           "description": {
             "anyOf": [
               {
@@ -1240,6 +1620,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -1292,6 +1673,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -2967,6 +3349,7 @@
             "name": "run_id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Run Id",
               "type": "integer"
             }
@@ -3019,7 +3402,31 @@
             "name": "run_id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Run Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
               "type": "integer"
             }
           }
@@ -3061,6 +3468,286 @@
           }
         },
         "summary": "List Run Audit",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/api/v1/workflow-runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_v1_workflow_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkflowRunAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Cancel Run",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/api/v1/workflow-runs/{run_id}/start": {
+      "post": {
+        "operationId": "start_run_api_v1_workflow_runs__run_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkflowRunAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Start Run",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/api/v1/workflow-runs/{run_id}/steps": {
+      "get": {
+        "operationId": "list_steps_api_v1_workflow_runs__run_id__steps_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StepRunResponse"
+                  },
+                  "title": "Response List Steps Api V1 Workflow Runs  Run Id  Steps Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Steps",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/api/v1/workflow-runs/{run_id}/steps/{step_id}": {
+      "get": {
+        "operationId": "get_step_api_v1_workflow_runs__run_id__steps__step_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Run Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "step_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Step Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Step",
         "tags": [
           "workflows"
         ]
@@ -3183,6 +3870,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -3226,6 +3914,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -3276,6 +3965,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -3338,6 +4028,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
@@ -3392,11 +4083,29 @@
             "name": "id",
             "required": true,
             "schema": {
+              "exclusiveMinimum": 0,
               "title": "Id",
               "type": "integer"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkflowRunAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {

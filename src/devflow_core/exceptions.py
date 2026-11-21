@@ -46,3 +46,41 @@ class ApprovalAlreadyResolvedError(DevFlowError):
         self.approval_id = approval_id
         self.current_status = current_status
         super().__init__(f"Approval {approval_id} has status {current_status}")
+
+
+class InvalidWorkflowTemplateError(DevFlowError):
+    code = "INVALID_WORKFLOW_TEMPLATE"
+
+
+class InvalidStepTransitionError(DevFlowError):
+    code = "INVALID_STEP_TRANSITION"
+
+
+class StepDispatchConflict(DevFlowError):
+    """Another owner already dispatched the step."""
+
+
+class ApprovalNotConsumableError(DevFlowError):
+    """Dispatch authorization failed and the dispatch was rolled back."""
+
+
+class OperationNotPermitted(DevFlowError):
+    """The persisted workflow state forbids this operation."""
+
+
+class DatabaseBusyError(DevFlowError):
+    """Bounded SQLite lock retries were exhausted."""
+
+
+class ExecutorSelectionError(DevFlowError):
+    def __init__(self, code: str) -> None:
+        self.code = code
+        super().__init__(code)
+
+
+class RunNotStartableError(DevFlowError):
+    code = "RUN_NOT_STARTABLE"
+
+
+class ApprovalExpiredError(DevFlowError):
+    code = "APPROVAL_EXPIRED"

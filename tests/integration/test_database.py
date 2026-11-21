@@ -35,7 +35,7 @@ def test_alembic_upgrade_downgrade_roundtrip(
     command.check(configuration)
     with closing(sqlite3.connect(sqlite_path)) as connection:
         assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (
-            "007_add_github_confirmations",
+            "008_add_workflow_execution_engine",
         )
         assert connection.execute("PRAGMA journal_mode").fetchone() == ("wal",)
     sqlite_path.unlink()

@@ -1,7 +1,19 @@
 # Phase 2 Wave 1 — Specification Readiness Report
 
-**Report date:** 2026-11-17 (updated for v2.1.1 final corrections)
-**Spec version:** 2.1.1 (final corrections; supersedes v2.1.0 and v2.0.0 — see `docs/reports/phase2-wave1-spec-resolution.md`)
+## Implementation verification update — 2026-11-19
+
+Follow-up, 2026-11-21: same branch and baseline HEAD confirmed; Ruff, formatting, strict MyPy, migration head 008, and six focused acceptance tests passed again. Offline-only verification remains the user's explicit constraint. No new implementation changes or online verification occurred; the full-suite evidence below is dated 2026-11-19.
+
+**PHASE 2 WAVE 1 IMPLEMENTATION BLOCKED** — exact CI online secret verification remains unexecuted. Following automatic approval review's rejection of possible candidate-credential egress, the user explicitly selected **Keep verification offline**; no online verification is authorized or planned. Offline TruffleHog 3.90.0 passed (652 chunks, zero verified/unverified findings). Release review must accept this documented offline-only evidence as an exception to the exact-workflow gate before the verdict can change. No known blocking implementation defect remains after fixing aiosqlite DEBUG parameter disclosure.
+
+On `feature/phase2-wave1-workflow-engine-implementation`, baseline HEAD `2386a784d39c1bac3526923342985d70d4ce9a36`, T1–T10 implementation/semantic acceptance verification and T11 reporting are complete. Final regression: **574 passed**, **93.11% combined coverage**, **94.96% line coverage**, **84.52% branch coverage**. Ruff, format, strict MyPy (165 files), sole migration head 008, isolated migration round trips/ORM comparison/foreign keys, OpenAPI export/equality, CI integration selection (25 tests), Bandit, pip-audit (61 dependencies, no known vulnerabilities), and pip check passed. Live isolated FastAPI/Streamlit approval-to-completion, failure/reject/cancel/expiry, and new-process recovery checks passed. No operational database was changed; temporary services were stopped.
+
+See [final verification report](phase2-wave1-final-verification-report.md) for the 61-requirement acceptance matrix, findings, detailed evidence, limitations, operational migration instructions, and explicit `git add -f` approach for required reports under the existing `/docs/` ignore rule. Groups A–C reports and the original blocker report are preserved. No push, PR, merge, deployment, or next-phase work occurred.
+
+The sections below are historical specification-preparation evidence. Their old branch/head/environment/open-issue statements are not current implementation-readiness claims; the final verification report supersedes them for implementation assessment.
+
+**Report date:** 2026-11-18 (updated for v2.1.4 final edge-case corrections)
+**Spec version:** 2.1.4 (final edge-case corrections; supersedes v2.1.3 — see `docs/reports/phase2-wave1-v2.1.4-final-resolution.md` and prior reports)
 **Phase:** 2 — Wave 1 (Workflow Execution Engine)
 **Task type:** Specification only (no implementation)
 **Repository:** `kotlinandfluttertutorial-lab/DevFlow-AI`
@@ -152,4 +164,4 @@ Resolve the open decisions in §8 with ChatGPT review before coding.
 
 All ten required specification deliverables are produced (v2.1.1, final corrections), internally consistent, and aligned with the repository's existing spec structure and conventions. Preflight passed. Phase 1 backward compatibility is preserved by design (no CHECK-constraint changes; additive columns, one new table, and one new run-snapshot extension; legacy `NULL`-template runs preserved). Phase 1 service compatibility is reconciled against the actual `WorkflowService`/`ApprovalService` code. Security claims are honest (explicit non-claim of OS sandboxing; prerequisites listed). Migration strategy is grounded in the verified Alembic head. v2.1.1 adds two final invariants: protected executors are never invoked before their approval is atomically consumed (lease+consume in one transaction, executor outside it, no restore on any outcome), and the failure-stop policy deterministically settles all remaining non-terminal non-running steps to `FAILED` (`skipped`) so the run reaches `failed` only after settle — no ninth step status introduced. Resolved defaults are applied; remaining items are documented decisions for approval, not blockers. The reconciliation report (`docs/reports/phase2-wave1-spec-resolution.md`) records all fifteen findings (F1–F15), resolutions, changed files/sections, design rationale, remaining risks, and the requirements-to-tests traceability.
 
-**PHASE 2 WAVE 1 SPEC READY — AWAITING CHATGPT APPROVAL**
+**PHASE 2 WAVE 1 SPEC v2.1.4 — AWAITING CHATGPT REVIEW**

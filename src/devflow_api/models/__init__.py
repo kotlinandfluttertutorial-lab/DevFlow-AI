@@ -10,6 +10,7 @@ from devflow_api.models.mcp_approval import MCPApproval
 from devflow_api.models.project import Project
 from devflow_api.models.repository import RepositoryConfig
 from devflow_api.models.workflow import Workflow, WorkflowRun
+from devflow_api.models.workflow_step_run import WorkflowStepRun
 
 __all__ = [
     "ApprovalRequest",
@@ -23,4 +24,5 @@ __all__ = [
     "Workflow",
     "WorkflowAuditLog",
     "WorkflowRun",
+    "WorkflowStepRun",
 ]
