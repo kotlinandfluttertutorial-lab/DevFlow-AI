@@ -106,7 +106,7 @@ Phase 1 head (verified): `007_add_github_confirmations`. Phase 2 extends the cha
 **PR target:** `develop`
 **Complexity:** High
 **Branch:** `feature/phase2-wave2-ai-spec-generation`
-**Spec:** `.kiro/specs/phase2-wave2-ai-specification-generation/{requirements,design,tasks}.md` (frozen v1.6.0)
+**Spec:** `.kiro/specs/phase2-wave2-ai-specification-generation/{requirements,design,tasks}.md` (frozen v1.6.1)
 **Readiness report:** `docs/reports/phase2-wave2-spec-readiness.md`
 **MCP assessment:** `docs/reports/phase2-wave2-mcp-compatibility-assessment.md`
 
