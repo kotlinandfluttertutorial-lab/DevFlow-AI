@@ -1,21 +1,43 @@
 # DevFlow AI — Phase 2 Wave 3 Final Specification Readiness Report
 
-**Version:** 1.0.2 (Final)
+## Current readiness — v1.0.4, 2026-11-24
+
+The replacement-plan defect was reproduced on the v1.0.3 DDL. The complete corrected DDL and a populated upgrade/downgrade probe passed against the real migration 009 schema. A 72-test characterization run passed. The current orchestrator persists `indeterminate` as failure, so the specification now requires an explicit future report-wait extension and preserves ordinary human approval separately. Publication intent and authorization consumption share a transaction, and the artifact and capability checks have executable SQL evidence.
+
+**Verdict:** Ready for specification freeze and the existing Kiro PR #25 update. All 12 tasks and 28 final acceptance criteria remain. Wave 3 production code, migration 010 and its future lifecycle acceptance tests are outside this assessment. [Final technical verification](phase2-wave3-final-technical-verification.md)
+
+## Historical v1.0.3 assessment _(Historical — superseded by v1.0.4 technical verification)_
+
+**Version:** 1.0.3 (Final)
 **Branch:** `feature/phase2-wave3-coding-agent-integration`
 **Date:** 2026-11-23
 **Supersedes:** `phase2-wave3-spec-readiness.md` (v1.0.1)
 
 ---
 
+## R01–R05 Corrections (v1.0.3)
+
+| Finding | Description | Status |
+|---|---|---|
+| R01 | Replacement execution plans — partial unique index | RESOLVED |
+| R02 | Durable human waiting — source-verified, no fake approvals | RESOLVED |
+| R03 | Publication states in CHECK constraint | RESOLVED |
+| R04 | Artifact ownership CHECKs + unique index | RESOLVED |
+| R05 | Wave 3 workflow discriminator table | RESOLVED |
+
+---
+
 ## 1. Final Version
 
-Specification v1.0.2 is the frozen version of the Wave 3 specification. All targeted integration corrections (C1–C7) have been applied.
+Specification v1.0.3 is the frozen version of the Wave 3 specification. All targeted integration corrections (C1–C7) and R01–R05 schema/lifecycle corrections have been applied.
+
+> **Note:** This section reflects the v1.0.3 state. The current frozen version is v1.0.4; see the readiness summary above.
 
 | File | Version |
 |---|---|
-| `requirements.md` | 1.0.2 |
-| `design.md` | 1.0.2 |
-| `tasks.md` | 1.0.2 |
+| `requirements.md` | 1.0.3 → 1.0.4 |
+| `design.md` | 1.0.3 → 1.0.4 |
+| `tasks.md` | 1.0.3 → 1.0.4 |
 
 ---
 
@@ -152,19 +174,21 @@ No new `StepExecutionResult.outcome` variant added. No new `WorkflowStepRun` sta
 
 ## 6. Final Migration 010 Schema Summary
 
-**7 new tables** in `010_add_coding_agent_integration.py`:
+**9 new tables** in `010_add_coding_agent_integration.py`:
 
 | Table | Key Fields | Key Constraints |
 |---|---|---|
 | `handoff_records` | id, spec_request_id, spec_version_id, artifact_digest, task_ids_json, status, awaiting_since | UNIQUE(spec_version_id) WHERE non-terminal; CHECK status enum |
 | `handoff_artifacts` | id, handoff_record_id, execution_plan_id, artifact_type, content_hash NOT NULL, status | idx_ha_plan; content_hash NOT NULL |
 | `handoff_findings` | id, handoff_record_id, finding_id, category, is_non_overridable | UNIQUE(handoff_record_id, finding_id) |
-| `execution_plans` | id, handoff_record_id, workflow_run_id NOT NULL, workflow_step_run_id NOT NULL, baseline_commit NOT NULL, deadline_at, execution_mode, canonical_input_hash, status | UNIQUE(workflow_run_id, workflow_step_run_id); CHECK execution_mode IN ('manual','mock','real_when_isolated') |
+| `execution_plans` | id, handoff_record_id, workflow_run_id NOT NULL, workflow_step_run_id NOT NULL, baseline_commit NOT NULL, deadline_at, execution_mode, canonical_input_hash, status | partial unique index `uidx_execution_plans_active_step`; CHECK execution_mode IN ('manual','mock','real_when_isolated') |
 | `execution_attempts` | id, execution_plan_id, execution_mode, status, baseline_commit, deadline_at, self_reported_verdict, devflow_verification_passed | CHECK status enum (15 values); CHECK devflow_verification_passed |
 | `execution_artifacts` | id, execution_attempt_id, artifact_type, file_name, content_hash, storage_key | idx_exart_attempt, idx_exart_hash |
 | `capability_records` | id, checked_at, codex_cli_installed, codex_cli_capability_status, isolation_status | CHECK enum fields |
+| `workflow_wave3_capabilities` | id, workflow_run_id NOT NULL, capabilities_snapshot, spec_version | UNIQUE(workflow_run_id); immutable trigger |
+| `workflow_human_waits` | id, workflow_step_run_id, step_attempt, token_hash, reason, expires_at, status | UNIQUE(step_attempt, workflow_step_run_id); reason/owner CHECK |
 
-**Index count:** 21 indexes across 7 tables.
+**Index count:** 20 indexes across the 9 new tables, plus 1 composite ownership index (`uidx_wave3_step_run_owner`) added to the existing `workflow_step_runs` table = 21 indexes total.
 
 **FK list (new FKs):**
 - `handoff_records.specification_request_id → specification_requests(id)`
@@ -219,7 +243,7 @@ The `WorkspaceValidator` enforces two layers:
 
 ```
 Group A — Foundation (no Wave 3 dependencies):
-  W3.T6  Data model: migration 010 (7 tables, 13 ACs)
+  W3.T6  Data model: migration 010 (9 tables, 17 ACs)
   W3.T1  IsolationGate + WorkspaceValidator + config (16 ACs, +6 for git metadata)
 
 Group B — Executors and validators (depend on T6, T1):
@@ -251,7 +275,7 @@ Group D — UI and tests (depend on Group C):
 | Acceptance criteria total | ~130 (110 from v1.0.1 + ~20 new from C1–C6) |
 | Implementation tasks | 12 (W3.T1–W3.T12; unchanged count) |
 | Acceptance test sub-criteria (W3.T12) | 28 (unchanged; all preserved) |
-| Database tables (migration 010) | 7 (unchanged) |
+| Database tables (migration 010) | 9 (corrected from 7; `workflow_wave3_capabilities` and `workflow_human_waits` added in R02/R05) |
 | New database columns vs v1.0.1 | +3 (`execution_plans.baseline_commit`, `execution_plans.deadline_at`, `handoff_artifacts.execution_plan_id`) |
 | API endpoints | 20 (unchanged) |
 | ADRs | 10 (all Decided; unchanged) |
@@ -276,7 +300,7 @@ Group D — UI and tests (depend on Group C):
 
 **READY FOR PR CREATION.**
 
-All 7 targeted corrections applied. Source-verified durable waiting contract specified against actual `StepExecutionResult`. Execution mode enum consistent across all three spec files. `execution_plans` schema complete with `baseline_commit`, `deadline_at`, and non-null workflow ownership. Git metadata security fully specified. Kiro approval ordering enforced at backend service layer. Artifact ownership policy clear and unambiguous.
+All 7 targeted corrections applied and v1.0.4 technical blockers R01–R05 resolved. Source-verified durable waiting contract specified against actual `StepExecutionResult`. Execution mode enum consistent across all three spec files. `execution_plans` schema complete with `baseline_commit`, `deadline_at`, and non-null workflow ownership. Git metadata security fully specified. Kiro approval ordering enforced at backend service layer. Artifact ownership policy clear and unambiguous. 9-table schema verified executable on migration 009 baseline.
 
 No Wave 3 source code was written (scope boundary respected). No Wave 1/Wave 2 contract modified.
 

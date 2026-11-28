@@ -146,6 +146,8 @@ Phase 1 head (verified): `007_add_github_confirmations`. Phase 2 extends the cha
 ### Wave 3 — Kiro Guided Handoff and Codex CLI
 **PR target:** `develop`
 **Complexity:** High
+**Spec:** `.kiro/specs/phase2-wave3-coding-agent-integration/{requirements,design,tasks}.md` (frozen v1.0.4)
+**Readiness report:** `docs/reports/phase2-wave3-final-spec-readiness.md`
 **Gate:** Kiro verifies specifications through guided handoff; Codex CLI implements approved tasks; implementation-authorization checkpoint gates Codex; real coding-agent execution is gated behind the isolation prerequisites from Wave 1 §12.4 (do not enable until OS-level isolation exists).
 
 | Task (indicative) | Description | Size |

@@ -69,9 +69,10 @@ Preservation rules confirmed intact:
 
 ## 4. Root Cause Determination
 
-**Conclusion: Confirmed merge-commit race condition (known GitHub Actions phantom failure). Not a code defect.**
+**Conclusion: SUSPECTED merge-commit race condition (known GitHub Actions phantom failure). Not a code defect.**
 
-**Evidence:**
+**Evidence:** `created_at == updated_at` on run `45179713942` (identical timestamps, 0-second completion) is consistent with the merge-commit race hypothesis. This is circumstantial evidence; the GitHub Actions internal scheduling behavior cannot be directly inspected via the public API. `security.yml` on `develop` contains `push: branches: [develop, main]` confirming the trigger is present. Root cause is therefore SUSPECTED merge-commit race, not authoritatively confirmed.
+
 - `created_at == updated_at` (both `2026-11-23T13:00:50Z`): the run was created and completed at the identical timestamp, meaning it failed instantly before any runner was assigned.
 - `total_count == 0` jobs: no jobs queued, no jobs executed.
 - Trigger event is `push` on `develop`.
@@ -106,7 +107,7 @@ No genuine workflow configuration issue was found.
 
 **No action needed on `security.yml`.**
 
-The 0-job failure is a confirmed GitHub Actions merge-commit race condition. It occurs when:
+The 0-job failure is a SUSPECTED GitHub Actions merge-commit race condition. It occurs when:
 1. A PR merges into `develop`.
 2. GitHub generates a check suite for the synthetic merge commit.
 3. The workflow evaluation fires before the merge is fully recorded in the branch refs.

@@ -1,7 +1,7 @@
 # DevFlow AI — Phase 2 Wave 3: Kiro Guided Handoff and Codex CLI Integration Requirements
 
-**Version:** 1.0.2
-**Status:** Frozen — v1.0.2 targeted integration corrections applied
+**Version:** 1.0.4
+**Status:** Freeze candidate — v1.0.4 targeted technical corrections
 **Scope:** Phase 2 Wave 3 — Kiro Guided Handoff and Codex CLI Integration
 **Branch:** `feature/phase2-wave3-coding-agent-integration`
 **Base commit:** `ee57dc7` (Wave 2 merged, develop HEAD)
@@ -17,6 +17,8 @@
 - v1.0.0 — 2026-11-23 — Initial Wave 3 specification.
 - v1.0.1 — 2026-11-23 — Revised following ChatGPT review. F01: manual added as first-class execution mode; blocked redefined as an outcome state. F02: authorization binding corrected against actual Wave 1 source; plan-level idempotency strategy replaced global hash uniqueness constraint. F03: report binding fields extended; empty/partial task result now blocks PASS. F04: WorkspaceValidator algorithm corrected; symlink detection fixed; UNC/device-path policy added; TOCTOU documented. F05: approval ordering corrected; Kiro verification precedes final spec approval. F06: durable wait design clarified; non-running human-wait state defined. F07: report_artifacts ownership fixed for pre-attempt Kiro phase; handoff_artifacts table introduced. F08: non-overridable finding categories defined; override limited to advisory findings. F09: Codex CLI capability claims corrected; abstract contract retained. F10: API endpoint list updated; counts corrected.
 - v1.0.2 — 2026-11-23 — Targeted integration corrections: (C1) execution mode enum reconciled to `manual|mock|real_when_isolated`; `blocked` removed from requested modes everywhere. (C2) immutable execution plan persistence: `baseline_commit`, `deadline_at` added; workflow ownership made non-null; crash-safe first transition specified; auth not consumed when real execution blocked. (C3) durable waiting contract source-verified against actual `StepExecutionResult` (`outcome="indeterminate"`); `WAITING_APPROVAL` step state confirmed; backward-compatible extension specified; wait reason, lease release, idempotent resumption, recovery, and duplicate-consumption prevention all specified. (C4) git metadata path validation added to WorkspaceValidator; bound reads, no config includes, `UNSUPPORTED_REPO_LAYOUT` error code defined. (C5) Kiro approval ordering enforced at `SpecificationApprovalService` backend; stale evidence invalidation rule added. (C6) artifact ownership: prompt lookup by `execution_plan_id` only; `content_hash` required; atomic publication; crash-safe recovery. (C7) version bumped to v1.0.2; counts updated.
+- v1.0.3 — 2026-11-23 — R01–R05 schema and lifecycle corrections: replacement plan partial index, durable waiting source-verification, publication state DDL alignment, artifact ownership enforcement, Wave 3 workflow discriminator.
+- v1.0.4 — 2026-11-24 — Correct plan replacement, explicit report waiting, atomic publication and capability ownership.
 
 ---
 
@@ -240,13 +242,14 @@ REQ-W3.2.8.3 — Cancelling a terminal handoff (`report_validated`, `failed`, `e
 
 ### REQ-W3.2.9 — Backend Kiro Verification Prerequisite for Specification Approval
 WHEN a final specification approval is requested for a Wave 3 workflow-linked specification version,
-THEN the `SpecificationApprovalService` backend MUST reject the approval request if: (a) no completed `kiro_handoffs` row exists with `status = 'report_validated'` whose `spec_version_digest` matches the current `SpecificationVersion.content_digest`, or (b) the handoff's `workflow_run_id` does not match the current workflow run. This check is enforced server-side regardless of UI state. The error code is `KIRO_VERIFICATION_REQUIRED`.
+THEN the `SpecificationApprovalService` backend MUST reject the approval request if: (a) no completed `handoff_records` row exists with `status = 'report_validated'` whose `artifact_digest` matches the current `SpecificationVersion.content_digest`, or (b) the handoff's `workflow_run_id` does not match the current workflow run. This check is enforced server-side regardless of UI state. The error code is `KIRO_VERIFICATION_REQUIRED`.
 
 **Acceptance Criteria:**
 REQ-W3.2.9.1 — A specification approval request with no linked validated Kiro handoff is rejected with `KIRO_VERIFICATION_REQUIRED`.
-REQ-W3.2.9.2 — A specification approval request where the validated handoff's `spec_version_digest` does not match `SpecificationVersion.content_digest` is rejected with `KIRO_VERIFICATION_REQUIRED`.
+REQ-W3.2.9.2 — A specification approval request where the validated handoff's `artifact_digest` does not match `SpecificationVersion.content_digest` is rejected with `KIRO_VERIFICATION_REQUIRED`.
 REQ-W3.2.9.3 — The check is performed in `SpecificationApprovalService` before creating or resolving any approval record; it is not enforced only in the UI.
 REQ-W3.2.9.4 — Legacy Wave 2 specification approvals (not linked to a Wave 3 workflow) are unaffected by this rule; the check applies only when the specification is associated with a Wave 3 workflow run.
+REQ-W3.2.9.5 — A run identified from trusted workflow configuration as Wave 3 rejects approval with `KIRO_VERIFICATION_REQUIRED` if its capability snapshot is missing, invalid or inconsistent. A client flag cannot disable the prerequisite.
 
 ### REQ-W3.2.10 — Stale Kiro Evidence Invalidation on Specification Revision
 WHEN a specification version is revised (a new version row is created for the same specification request),
@@ -327,7 +330,7 @@ REQ-W3.3.5.3 — Log capture excludes fields named `token`, `key`, `secret`, `pa
 
 ### REQ-W3.4.1 — Authorization Request Using Wave 1 Path
 WHEN a user requests implementation authorization,
-THEN the system MUST invoke `ApprovalService.request_bound_approval(run_id, step_run_id)` for the workflow step representing the implementation authorization gate. The step's `protected_operation` MUST be `"implementation_authorization"`. The step's `inputs_json` MUST include: `specification_request_id`, `specification_version_id`, `artifact_digest`, `kiro_handoff_id` (the validated handoff integer ID), `task_ids` (sorted list), `repo_identity`, `workspace_identity`, `execution_mode`, `deadline_at`, `baseline_commit`. The `parameters_hash` is derived automatically by Wave 1 as `canonical_hash(step.inputs_json)` from the persisted inputs.
+THEN the system MUST invoke `ApprovalService.request_bound_approval(run_id, step_run_id)` for the workflow step representing the implementation authorization gate. The step's `protected_operation` MUST be `"implementation_authorization"`. The step's `inputs_json` MUST include: `specification_request_id`, `specification_version_id`, `artifact_digest`, `kiro_handoff_id` (the validated handoff integer ID), `execution_plan_id`, `task_ids` (sorted list), `repo_identity`, `workspace_identity`, `execution_mode`, `deadline_at`, `baseline_commit`. The `parameters_hash` is derived automatically by Wave 1 as `canonical_hash(step.inputs_json)` from the persisted inputs.
 
 **Acceptance Criteria:**
 REQ-W3.4.1.1 — `request_bound_approval` is invoked with the correct `run_id` and `step_run_id`.
@@ -388,9 +391,20 @@ THEN the complete immutable execution plan — including `baseline_commit`, `dea
 **Acceptance Criteria:**
 REQ-W3.4.7.1 — `baseline_commit` and `deadline_at` are persisted in `execution_plans` before authorization is requested.
 REQ-W3.4.7.2 — Every authorized execution plan is linked to a workflow run and step (`workflow_run_id NOT NULL`, `workflow_step_run_id NOT NULL`). Standalone (non-workflow) execution plans are not supported in Wave 3.
-REQ-W3.4.7.3 — The first manual prompt export, authorization consumption, durable prompt publication, and execution-attempt state transition are crash-safe: a single `BEGIN IMMEDIATE` transaction spans the plan status update and attempt creation.
+REQ-W3.4.7.3 — The first manual prompt export, authorization consumption, durable prompt publication, and execution-attempt state transition are crash-safe: one `BEGIN IMMEDIATE` transaction verifies and consumes approval, stores immutable prompt bytes and digest as the publication intent, changes plan/attempt state and writes audit evidence.
 REQ-W3.4.7.4 — Authorization MUST NOT be consumed for `real_when_isolated` mode when isolation prerequisites are unmet at execution time.
 REQ-W3.4.7.5 — Replacement plans (after input changes) require creating a new `execution_plans` row and requesting fresh authorization. The old plan's authorization is not transferable.
+
+### REQ-W3.4.8 — Replacement Execution Plans (R01)
+WHEN input fields change after an execution plan is created for a workflow step,
+THEN the system MUST support creating a replacement plan by atomically setting the old plan's status to `stale` and inserting a new plan row for the same `workflow_step_run_id`. At most one plan in an active status (`draft`, `ready`, `prompt_publishing`, `prompt_published`, `executing`) is permitted per `workflow_step_run_id` at any time, enforced by partial unique index. Historical and stale plans are retained as audit evidence.
+
+**Acceptance Criteria:**
+REQ-W3.4.8.1 — Creating a replacement plan atomically sets the old plan to `stale` in the same `BEGIN IMMEDIATE` transaction that inserts the new plan row.
+REQ-W3.4.8.2 — A `stale` plan's authorization cannot be consumed; CAS on `consumed_at IS NULL` prevents reuse.
+REQ-W3.4.8.3 — Fresh `implementation_authorization` approval is required for the new plan's `canonical_input_hash`; the stale plan's approval is not transferable.
+REQ-W3.4.8.4 — The partial unique index `uidx_execution_plans_active_step` prevents inserting a second active plan without first staling the existing one.
+REQ-W3.4.8.5 — Stale and completed plans for the same `workflow_step_run_id` are preserved and queryable as historical evidence.
 
 ---
 
@@ -556,6 +570,17 @@ REQ-W3.7.3.3 — `awaiting_impl_report` execution attempts survive restart and a
 REQ-W3.7.3.4 — The wait reason is stored as a discriminated field distinguishing `waiting_for_kiro_report` from `waiting_for_impl_authorization`; the two states cannot be confused by the resumption logic.
 REQ-W3.7.3.5 — Resumption after restart re-reads attempt status from the database; already-resumed attempts are not re-dispatched.
 REQ-W3.7.3.6 — `real_when_isolated` NEVER auto-dispatches even after isolation prerequisites might theoretically become available; the user must explicitly request a new attempt.
+
+### REQ-W3.7.6 — Durable Wait Mechanism Contract (R02)
+WHEN a Kiro handoff enters `awaiting_report` state,
+THEN a typed waiting_human result MUST fence and atomically transition RUNNING to WAITING_HUMAN, persist the report wait owner and attempt token, clear the lease and audit. Kiro and manual Codex reports have distinct reasons. Validate token, attempt, digest, ownership and expiry on acceptance, and return the persisted result for identical replay. Cancellation and expiry settle the wait atomically. Startup preserves valid waits and never redispatches a coding agent. Report waits create no approval row. Independent implementation authorization continues to use the existing WAITING_APPROVAL gate.
+
+**Acceptance Criteria:**
+REQ-W3.7.6.1 — Wait reason is persisted in the domain record (`handoff_records.status`) and is distinguishable from approval-waiting by `error.code` on the `StepExecutionResult`.
+REQ-W3.7.6.2 — The step lease is released before the handoff enters `awaiting_report`; no active coroutine holds the step.
+REQ-W3.7.6.3 — Recovery (`CodingAgentRecoveryService.recover()`) does not re-dispatch `awaiting_report` or `awaiting_impl_report` attempts.
+REQ-W3.7.6.4 — No `ApprovalRequest` row is created for report-waiting; only the `implementation_authorization` gate creates `ApprovalRequest` rows.
+REQ-W3.7.6.5 — Idempotent resumption: a second attempt to resume an already-resumed attempt returns the current status without re-dispatching.
 
 ### REQ-W3.7.4 — Recovery on Restart
 WHEN the application starts,

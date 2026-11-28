@@ -1,7 +1,7 @@
-# Phase 2 Wave 3 — ChatGPT Verification Index (v1.0.1)
+# Phase 2 Wave 3 — ChatGPT Verification Index (v1.0.1 → v1.0.4)
 
-**Package:** Phase 2 Wave 3 Specification Review — v1.0.1
-**Date:** 2026-11-23
+**Package:** Phase 2 Wave 3 Specification Review — v1.0.4 (originally reviewed at v1.0.1; R01–R05 corrections applied through v1.0.4)
+**Date:** 2026-11-23 (review); 2026-11-24 (v1.0.4 freeze)
 **Branch:** `feature/phase2-wave3-coding-agent-integration`
 **Git baseline:** `ee57dc7` (Wave 2 merged, develop HEAD)
 **Supersedes:** v1.0.0 verification index (same date)
@@ -31,9 +31,9 @@ This is the corrected Wave 3 specification following a ChatGPT review of v1.0.0.
 
 | File | Purpose |
 |---|---|
-| `.kiro/specs/phase2-wave3-coding-agent-integration/requirements.md` | ~65 requirements, 10 areas + 10 security; corrected workflow ordering, manual mode, non-overridable findings, corrected report binding |
-| `.kiro/specs/phase2-wave3-coding-agent-integration/design.md` | Architecture; corrected WorkspaceValidator algorithm; corrected authorization binding; 7-table data model; 20 API routes; 10 ADRs |
-| `.kiro/specs/phase2-wave3-coding-agent-integration/tasks.md` | 12 tasks; W3.T12 with 28 acceptance sub-criteria |
+| `.kiro/specs/phase2-wave3-coding-agent-integration/requirements.md` | ~65 requirements, 10 areas + 10 security; corrected workflow ordering, manual mode, non-overridable findings, corrected report binding (v1.0.4) |
+| `.kiro/specs/phase2-wave3-coding-agent-integration/design.md` | Architecture; corrected WorkspaceValidator algorithm; corrected authorization binding; 9-table data model; 20 API routes; 10 ADRs (v1.0.4) |
+| `.kiro/specs/phase2-wave3-coding-agent-integration/tasks.md` | 12 tasks; W3.T12 with 28 acceptance sub-criteria (v1.0.4) |
 | `docs/reports/phase2-wave3-spec-resolution-v1.0.1.md` | One-to-one resolution matrix for F01–F10 |
 | `docs/reports/phase2-wave3-spec-readiness.md` | Readiness assessment (v1.0.1) |
 | `docs/reports/phase2-wave3-chatgpt-verification.md` | This file — review index |
@@ -147,4 +147,4 @@ This is the corrected Wave 3 specification following a ChatGPT review of v1.0.0.
 | Non-overridable findings: 7 categories | design.md §14.3 | Is the list complete? |
 | `real_execution_blocked` as outcome, not mode | requirements.md overview | Is the mode/state distinction clear throughout? |
 | 20 API endpoints (updated from 17) | design.md §11 | Are idempotent GET endpoints correctly specified? |
-| 7 tables (updated from 6) | design.md §10.1 | Is artifact ownership split correct? |
+| 7 tables (updated from 6) | design.md §10.1 | Is artifact ownership split correct? (Note: 9 tables as of v1.0.4; 2 more added in R02/R05 — `workflow_human_waits` and `workflow_wave3_capabilities`) |

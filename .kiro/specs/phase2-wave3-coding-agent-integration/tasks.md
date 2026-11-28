@@ -1,12 +1,12 @@
 # DevFlow AI — Phase 2 Wave 3: Kiro Guided Handoff and Codex CLI Integration Tasks
 
-**Version:** 1.0.2
-**Status:** Frozen — v1.0.2 targeted integration corrections applied
+**Version:** 1.0.4
+**Status:** Freeze candidate — v1.0.4 targeted technical corrections
 **Scope:** Phase 2 Wave 3 — Kiro Guided Handoff and Codex CLI Integration
 **Branch:** `feature/phase2-wave3-coding-agent-integration`
 **Base commit:** `ee57dc7` (Wave 2 merged, develop HEAD)
 **Last Updated:** 2026-11-23
-**Companions:** `requirements.md` (v1.0.2), `design.md` (v1.0.2).
+**Companions:** `requirements.md` (v1.0.4), `design.md` (v1.0.4).
 
 ---
 
@@ -15,6 +15,8 @@
 - v1.0.0 — 2026-11-23 — Initial Wave 3 tasks.
 - v1.0.1 — 2026-11-23 — ChatGPT review corrections F01–F10 applied.
 - v1.0.2 — 2026-11-23 — Targeted integration corrections: execution mode enum updated to `manual|mock|real_when_isolated` in all acceptance criteria; `execution_plans` table AC updated for `baseline_commit`, `deadline_at`, NOT NULL FKs; durable waiting contract AC updated citing `outcome="indeterminate"`; git metadata path validation AC added; Kiro approval ordering AC added; artifact ownership AC updated for `execution_plan_id` and `content_hash`.
+- v1.0.3 — 2026-11-23 — R01–R05 schema and lifecycle corrections applied.
+- v1.0.4 — 2026-11-24 — Correct plan replacement, explicit report waiting, atomic publication and capability ownership.
 
 ---
 
@@ -30,7 +32,7 @@
 
 ```
 Group A (foundation — no Wave 3 deps):
-  W3.T6  Data model (migration 010; 7 tables)
+  W3.T6  Data model (migration 010; 9 tables)
   W3.T1  IsolationGate + WorkspaceValidator + config
 
 Group B (executors and validators — depend on T6, T1):
@@ -126,7 +128,7 @@ W3.T1.16 — `gitdir:` target resolving outside approved workspace root returns 
 
 **Description:**
 
-Create `src/devflow_api/executors/kiro_handoff.py` with `KiroHandoffExecutor` implementing the Wave 1 `Executor` Protocol. Implement the handoff state machine (design.md §3.1). The `awaiting_report` and `awaiting_impl_report` states are **non-running durable wait states**: no executor coroutine is held; the Wave 1 step enters `WAITING_APPROVAL`; the handoff sub-state is tracked in `handoff_records`. Resumption occurs on user action via fresh HTTP requests.
+Create `src/devflow_api/executors/kiro_handoff.py` with `KiroHandoffExecutor` implementing the Wave 1 `Executor` Protocol. Implement the handoff state machine (design.md §3.1). The `awaiting_report` and `awaiting_impl_report` states are **non-running durable wait states**: no executor coroutine is held; the step enters `WAITING_HUMAN` via the fenced contract in design §3.2.1; the handoff sub-state is tracked in `handoff_records`. Resumption occurs on user action via fresh HTTP requests.
 
 Store prompt content immutably in `handoff_artifacts` at export time (design.md §3.3). Implement digest binding (design.md §3.4). Implement expiry check in `CodingAgentRecoveryService`.
 
@@ -203,7 +205,7 @@ W3.T4.8 — Canonical hash is deterministic; changing any input field changes ha
 W3.T4.9 — Wildcard `"*"` in `task_ids` returns HTTP 422.
 W3.T4.10 — `mypy --strict` passes.
 W3.T4.11 — `execution_mode = "blocked"` or any value outside `manual|mock|real_when_isolated` returns HTTP 422.
-W3.T4.12 — `KiroHandoffExecutor.execute()` returns `outcome="indeterminate"` with `error.code="WAITING_FOR_KIRO_REPORT"` when entering `awaiting_report` state (source-verified against actual `StepExecutionResult` schema).
+W3.T4.12 — Kiro and manual implementation report waits use the typed waiting_human result and their distinct reason/owner pairs. Entry fences the current attempt and clears its lease. Identical submission is idempotent; cancellation, expiry and restart never launch an agent or create a fake approval.
 W3.T4.13 — Authorization is NOT consumed when `real_when_isolated` is blocked by `IsolationGate`.
 
 **Definition of Done:** All 13 AC pass. `CodexCLIExecutor` registered as `"codex_cli"`. No real subprocess ever launched in Wave 3.
@@ -249,18 +251,18 @@ W3.T5.10 — `mypy --strict` passes.
 
 **Description:**
 
-Create `alembic/versions/010_add_coding_agent_integration.py` with `down_revision = "009_add_ai_specification_generation"`. Create the 7 new tables: `handoff_records`, `handoff_artifacts`, `handoff_findings`, `execution_plans`, `execution_attempts`, `execution_artifacts`, `capability_records` (design.md §10.1). All indexes and CHECK constraints as specified. Unique constraint on `(workflow_run_id, workflow_step_run_id)` in `execution_plans` (not globally unique hash). Unique constraint on `(handoff_record_id, finding_id)` in `handoff_findings`. All timestamp columns use `UTCTextDateTime` from `src/devflow_api/models/specification.py`. Migration is fully reversible.
+Implement migration 010 after 009 with the nine tables and dependent step CHECK rebuild, capability snapshot and nullable verification FK in design §10.1. Verify populated upgrade and quiesced downgrade on throwaway databases.
 
 Add SQLAlchemy ORM models in `src/devflow_api/models/coding_agent.py` following the pattern in `specification.py`.
 
 **Acceptance Criteria:**
 
-W3.T6.1 — `alembic upgrade head` creates all 7 tables with correct schemas.
-W3.T6.2 — `alembic downgrade -1` drops all 7 tables cleanly.
+W3.T6.1 — `alembic upgrade head` creates all 9 tables with correct schemas.
+W3.T6.2 — `alembic downgrade -1` drops all 9 tables cleanly.
 W3.T6.3 — Upgrade/downgrade chain from 001 to 010 and back passes without error.
 W3.T6.4 — All CHECK constraints, indexes, and UNIQUE constraints from design.md §10.1 are present.
-W3.T6.5 — No existing Phase 0/1/Wave 1/Wave 2 table is altered.
-W3.T6.6 — `execution_plans` has `UNIQUE(workflow_run_id, workflow_step_run_id)`, not global hash uniqueness.
+W3.T6.5 — Only the specified step status CHECK, ownership index and nullable verification FK change existing tables. Populated downgrade preserves legacy rows, IDs, indexes and foreign keys, and rejects an outstanding report wait.
+W3.T6.6 — Execute the complete DDL with foreign keys enabled. The active-step partial unique index rejects a second active plan and permits multiple historical plans and a replacement. The composite FK rejects mismatched run/step ownership. Reject reuse of the old authorization, including an unconsumed old approval.
 W3.T6.7 — `handoff_findings` has `UNIQUE(handoff_record_id, finding_id)`.
 W3.T6.8 — `mypy --strict` passes for `models/coding_agent.py`.
 W3.T6.9 — `execution_plans.workflow_run_id` and `workflow_step_run_id` are `NOT NULL` (standalone plans not supported in Wave 3).
@@ -268,8 +270,12 @@ W3.T6.10 — `execution_plans` contains `baseline_commit TEXT NOT NULL` and `dea
 W3.T6.11 — `execution_plans.execution_mode` CHECK constraint is `IN ('manual','mock','real_when_isolated')` — no `'blocked'` value.
 W3.T6.12 — `handoff_artifacts.execution_plan_id` FK column present (NULL for kiro_prompt/kiro_report; NOT NULL for codex_prompt artifacts enforced at service layer).
 W3.T6.13 — `handoff_artifacts.content_hash TEXT NOT NULL` present.
+W3.T6.14 — The partial unique index `uidx_execution_plans_active_step` prevents concurrent active plans for the same workflow step.
+W3.T6.15 — `execution_plans` CHECK constraint includes publication states: `prompt_publishing`, `prompt_published`, `executing`, `completed`, `failed`, `stale`.
+W3.T6.16 — `handoff_artifacts` has conditional CHECK constraints enforcing `codex_prompt` requires `execution_plan_id`; kiro artifacts forbid it.
+W3.T6.17 — One immutable `workflow_wave3_capabilities` snapshot per run is derived from trusted workflow configuration. A Wave 3 snapshot with missing capability data fails closed. Legacy runs retain their existing behavior, and revision starts without verification evidence.
 
-**Definition of Done:** All 13 AC pass. Migration 010 is new Alembic head.
+**Definition of Done:** All 17 AC pass. Migration 010 is new Alembic head.
 
 **Estimated Complexity:** Medium
 
@@ -302,9 +308,11 @@ W3.T7.10 — `mypy --strict` passes for both service files.
 W3.T7.11 — `execution_plans` rows are created with `workflow_run_id NOT NULL` and `workflow_step_run_id NOT NULL`; creating a plan without workflow context returns a service error.
 W3.T7.12 — `baseline_commit` and `deadline_at` are persisted in `execution_plans` before `request_bound_approval` is called.
 W3.T7.13 — Specification approval for a Wave 3 workflow-linked spec without a validated Kiro handoff matching the current content digest is rejected with `KIRO_VERIFICATION_REQUIRED`.
-W3.T7.14 — Prompt artifact lookup uses `execution_plan_id` FK; a lookup by `handoff_id` alone without plan ID is rejected at service layer.
+W3.T7.14 — Prompt artifact lookup uses `execution_plan_id` FK; a lookup by `handoff_record_id` alone without plan ID is rejected at service layer.
+W3.T7.15 — Replacement plan creation atomically sets old plan to `stale` and inserts new plan in one `BEGIN IMMEDIATE` transaction.
+W3.T7.16 — Inject a fault after consumption and before intent commit and prove rollback of consumption, prompt, attempt and audit. After a committed intent, recover identical bytes without another consumption or agent launch. Enforce both artifact ownership FKs, mandatory hash and unique prompt per plan.
 
-**Definition of Done:** All 14 AC pass. No new approval table introduced; Wave 1 `ApprovalService` only.
+**Definition of Done:** All 16 AC pass. No new approval table introduced; Wave 1 `ApprovalService` only.
 
 **Estimated Complexity:** Medium
 
@@ -384,8 +392,10 @@ W3.T10.3 — Orchestrator dispatches `executor_id = "codex_cli"` to `CodexCLIExe
 W3.T10.4 — Recovery transitions `dispatching`/`mock_execution` → `interrupted`.
 W3.T10.5 — Recovery does NOT interrupt `awaiting_impl_report` or `awaiting_report`.
 W3.T10.6 — Existing executors unaffected.
+W3.T10.7 — Durable wait states (`awaiting_report`, `awaiting_impl_report`) are preserved across restart; no automatic redispatch.
+W3.T10.8 — Wave 3 workflow run creation inserts a `workflow_wave3_capabilities` row before any Wave 3 executor steps execute.
 
-**Definition of Done:** All 6 AC pass. Wave 1/Wave 2 orchestrator tests pass.
+**Definition of Done:** All 8 AC pass. Wave 1/Wave 2 orchestrator tests pass.
 
 **Estimated Complexity:** Medium
 
